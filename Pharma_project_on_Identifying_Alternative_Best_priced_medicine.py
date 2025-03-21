@@ -1,17 +1,14 @@
 import zipfile
 zip_ref = zipfile.ZipFile('az-medicine-dataset-of-india.zip') 
-zip_ref.extractall() # extract file to dir
+zip_ref.extractall() # extract file to directory
 zip_ref.close() # close file
 
-# %%
 import pandas as pd
 df=pd.read_csv('az-medicine-dataset-of-india.zip')
 
-# %%
 df
 
-# %%
-# Define the lambda function to map substrings to values
+# Define the lambda function to map medicine category into values
 def map_medicine_type(medicine):
     if 'tablets' in medicine:
         return 'Tablets'
@@ -37,25 +34,18 @@ def map_medicine_type(medicine):
         return 'other'
 
 # Apply the lambda function to the 'Medicine' column
-df['Category'] = df['pack_size_label'].apply(lambda x: map_medicine_type(x))
+df['Category'] = df['pack_size_label'].apply(lambda x: map_medicine_type(x))  # re-orgainsing the pack_size_label with mapped categorized label
 
-df['short_composition1'].fillna('')
+df['short_composition1'].fillna('') #Preparing the df with filling/indundating with NAN
 
-
-
-# %%
-df['process_type'] = df['short_composition2'].apply(lambda x: 'Filling' if pd.notna(x) else 'Manufacturing')
+df['process_type'] = df['short_composition2'].apply(lambda x: 'Filling' if pd.notna(x) else 'Manufacturing') #Preparing the df with keyword "Filing" if NAN is identified and with "Manufacturing" if Not-Empty
 
 df
-
-# %%
-
 
 # Apply the lambda function to the 'Medicine' column for getting strength
 df['Strength']=df['short_composition1'].str.extract(r'(.*?)')
 
-# %%
-# rename column for better understanding
+# Rename column for better understanding
 df = df.rename(columns={'name': 'Product_Name','price(₹)':'Price','manufacturer_name':'Company','pack_size_label':'Size','Is_discontinued':'Active','short_composition1':'Composition1','short_composition2':'Composition2'})
 df['Active']=df['Active'].apply(lambda x:1 if x==False else 0)
 df = df.fillna('')
@@ -69,21 +59,22 @@ engine = sal.create_engine('mysql+pymysql://root:Mysql!2025@127.0.0.1:3306')
 
 # Create a connection
 with engine.connect() as conn:
-    conn.execute(text("CREATE DATABASE IF NOT EXISTS Pharma_Project;"))  # Use text() for raw SQL
-    conn.commit()  # Commit the transaction
+    conn.execute(text("CREATE DATABASE IF NOT EXISTS Pharma_Project;"))  # Use text() for raw MySQL - DB creation
+    conn.commit()  
 
-# Now connect to the Pharma_Project database
-engine = sal.create_engine('mysql+pymysql://root:Mysql!2025@127.0.0.1:3306/Pharma_Project')
+
+engine = sal.create_engine('mysql+pymysql://root:Mysql!2025@127.0.0.1:3306/Pharma_Project')# Now connect to the Pharma_Project database
 conn=engine.connect()
 
 if df.empty:
-    print("⚠️ DataFrame is empty. No data to load.")
+    print("DataFrame is empty. No data to load.")
 else:
-    print(f"✅ Loading {len(df)} records into MySQL...")
+    print(f"Loading {len(df)} records into MySQL...")
+    df.to_sql(name='medicine', con=engine, index=False, if_exists='append', method='multi')#At first instance , use this DB loading entries from .csv format 
+    #df.to_sql(name='medicine', con=engine, index=False, if_exists='append', method='multi') #Initializing the DATABASE with all the pharmaceutical details - 2.5L entries( Not necesasry to instatntiate at every executions
+    
 
-    #df.to_sql(name='medicine', con=engine, index=False, if_exists='append', method='multi')
-
-    print("🎉 Data successfully inserted into 'medicine' table.")
+    print("Data successfully inserted into 'medicine' table.")
 
 engine.dispose()
 
@@ -109,9 +100,9 @@ def find_alternative_medicines(medicine_name, engine):
     return df_alternatives
 
 # User input: Medicine name
-medicine_name = input("Enter Medicine Name: ")  # Example: "Paracetamol 500mg"
+medicine_name = input("Enter Medicine Name: ")  # Example: "Alex Syrup"
 
-# Fetch alternatives based on composition
+# Fetch alternatives based on composition feeded
 df_alternatives = find_alternative_medicines(medicine_name, engine)
 
 # Check if any alternatives found
